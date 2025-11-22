@@ -21,8 +21,18 @@ module.exports = async function (context, req) {
       throw new Error('Missing code or state parameter');
     }
 
-    // Initialize database
-    await database.initializeDatabase();
+    // Initialize database (skip if in mock mode without storage)
+    if (!mockOAuth.MOCK_MODE || process.env.AzureWebJobsStorage !== 'UseDevelopmentStorage=true') {
+      try {
+        await database.initializeDatabase();
+      } catch (error) {
+        if (mockOAuth.MOCK_MODE) {
+          logger.warning('Database unavailable in mock mode, continuing without storage');
+        } else {
+          throw error;
+        }
+      }
+    }
 
     // === STAGE 1: RETURNING FROM AZURE AD ===
     if (state === 'azure_init') {
@@ -42,8 +52,15 @@ module.exports = async function (context, req) {
 
       logger.info(`Azure AD user authenticated: ${userEmail}`);
 
-      // Check if user already linked
-      let existingMapping = await database.getUserMapping(userEmail);
+      // Check if user already linked (in mock mode, always treat as new user)
+      let existingMapping = null;
+      if (!mockOAuth.MOCK_MODE) {
+        try {
+          existingMapping = await database.getUserMapping(userEmail);
+        } catch (error) {
+          logger.warning('Database query failed, treating as new user', error);
+        }
+      }
 
       if (existingMapping) {
         // User already linked - just update last login
@@ -123,29 +140,35 @@ module.exports = async function (context, req) {
 
       logger.info(`GitHub user authenticated: ${ghUser.login}`);
 
-      // Store mapping in database
-      await database.upsertUserMapping(userEmail, ghUser.login);
-
-      // Add user to organization
-      try {
-        await github.addUserToOrg(ghUser.login);
-      } catch (error) {
-        logger.warning(`Failed to add user to org: ${ghUser.login}`, error);
+      // Store mapping in database (skip in mock mode if database unavailable)
+      if (!mockOAuth.MOCK_MODE) {
+        try {
+          await database.upsertUserMapping(userEmail, ghUser.login);
+          await database.logAuditEvent('USER_LINKED', {
+            email: userEmail,
+            githubUsername: ghUser.login
+          });
+        } catch (error) {
+          logger.warning('Failed to store mapping in database', error);
+        }
       }
 
-      // Add user to gatekeeper team
-      try {
-        const teamSlug = process.env.GITHUB_GATEKEEPER_TEAM_SLUG || 'active-session-users';
-        await github.addUserToTeam(ghUser.login, teamSlug);
-      } catch (error) {
-        logger.warning(`Failed to add user to team: ${ghUser.login}`, error);
-      }
+      // Add user to organization (skip in mock mode)
+      if (!mockOAuth.MOCK_MODE) {
+        try {
+          await github.addUserToOrg(ghUser.login);
+        } catch (error) {
+          logger.warning(`Failed to add user to org: ${ghUser.login}`, error);
+        }
 
-      // Log audit event
-      await database.logAuditEvent('USER_LINKED', {
-        email: userEmail,
-        githubUsername: ghUser.login
-      });
+        // Add user to gatekeeper team
+        try {
+          const teamSlug = process.env.GITHUB_GATEKEEPER_TEAM_SLUG || 'active-session-users';
+          await github.addUserToTeam(ghUser.login, teamSlug);
+        } catch (error) {
+          logger.warning(`Failed to add user to team: ${ghUser.login}`, error);
+        }
+      }
 
       logger.info(`User linked successfully: ${userEmail} <-> ${ghUser.login}`);
 
