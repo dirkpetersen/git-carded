@@ -29,7 +29,8 @@
     "cookie": "^0.6.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "jsonwebtoken": "^9.1.0",
+    "jsonwebtoken": "^9.0.0",
+    "jwt-decode": "^3.1.2",
     "msal-node": "^1.18.0",
     "querystring": "^0.2.1"
   },

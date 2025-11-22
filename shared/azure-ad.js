@@ -1,6 +1,6 @@
 const axios = require('axios');
 const querystring = require('querystring');
-const { jwtDecode } = require('jwt-decode');
+const jwtDecode = require('jwt-decode');
 const logger = require('./logger');
 
 /**
