@@ -4,12 +4,13 @@
   "description": "GitHub Identity Bridge & Governance System - Azure Functions implementation",
   "main": "index.js",
   "scripts": {
-    "start": "func start",
+    "start": "node local-server.js",
+    "start:func": "func start",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:unit": "jest --testPathPattern=tests/.*\\.test\\.js",
     "lint": "eslint functions/ shared/ tests/",
-    "local:dev": "func start --csharp false",
+    "setup": "./scripts/setup-local.sh",
     "build": "npm install"
   },
   "keywords": [
