@@ -97,19 +97,48 @@ module.exports = async function (context, req) {
           `
         };
       } else {
-        // New user - redirect to GitHub OAuth to link account
-        logger.info(`New user, redirecting to GitHub OAuth: ${userEmail}`);
+        // New user - in mock mode, simulate complete flow; otherwise redirect to GitHub OAuth
+        if (mockOAuth.MOCK_MODE) {
+          logger.info(`Mock mode: Simulating complete OAuth flow for ${userEmail}`);
 
-        const githubAuthUrl = buildGithubOAuthUrl(`github_init|${userEmail}`);
+          // Generate mock GitHub user
+          const mockGhUser = mockOAuth.createMockGithubUser('testuser');
 
-        context.res = {
-          status: 302,
-          headers: {
-            'Location': githubAuthUrl,
-            'Content-Type': 'text/html'
-          },
-          body: `Redirecting to GitHub... <a href="${githubAuthUrl}">Click here if not redirected</a>`
-        };
+          context.res = {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' },
+            body: `
+              <html>
+                <head><title>Account Linked Successfully (Mock)</title></head>
+                <body>
+                  <h1>Success! (Mock Mode)</h1>
+                  <p>Your account has been successfully linked in mock mode.</p>
+                  <p><strong>Azure Email:</strong> ${userEmail}</p>
+                  <p><strong>GitHub Username:</strong> ${mockGhUser.login}</p>
+                  <p><strong>Organization:</strong> ${process.env.GITHUB_ORG_NAME || 'oregonstate-ai'}</p>
+                  <hr>
+                  <p><em>Note: This is mock mode. No actual GitHub organization access granted.</em></p>
+                  <p><em>To test with real credentials, set USE_MOCK_OAUTH=false in local.settings.json</em></p>
+                  <p><a href="https://github.com/oregonstate-ai">Go to GitHub Organization</a></p>
+                </body>
+              </html>
+            `
+          };
+        } else {
+          // Real mode - redirect to GitHub OAuth to link account
+          logger.info(`New user, redirecting to GitHub OAuth: ${userEmail}`);
+
+          const githubAuthUrl = buildGithubOAuthUrl(`github_init|${userEmail}`);
+
+          context.res = {
+            status: 302,
+            headers: {
+              'Location': githubAuthUrl,
+              'Content-Type': 'text/html'
+            },
+            body: `Redirecting to GitHub... <a href="${githubAuthUrl}">Click here if not redirected</a>`
+          };
+        }
       }
     }
     // === STAGE 2: RETURNING FROM GITHUB ===
