@@ -7,9 +7,24 @@
 
 const http = require('http');
 const url = require('url');
+const fs = require('fs');
+const path = require('path');
 
-// Load environment variables
-require('dotenv').config({ path: 'local.settings.json' });
+// Load environment variables from local.settings.json
+try {
+  const settingsPath = path.join(__dirname, 'local.settings.json');
+  if (fs.existsSync(settingsPath)) {
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    if (settings.Values) {
+      Object.entries(settings.Values).forEach(([key, value]) => {
+        process.env[key] = value;
+      });
+    }
+    console.log('✓ Loaded configuration from local.settings.json');
+  }
+} catch (error) {
+  console.warn('Warning: Could not load local.settings.json:', error.message);
+}
 
 // Import functions
 const Login = require('./functions/Login');
