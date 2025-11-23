@@ -19,13 +19,5 @@
     "GITHUB_APP_PRIVATE_KEY": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----",
     "GITHUB_APP_WEBHOOK_SECRET": "your-webhook-secret",
     "APPINSIGHTS_INSTRUMENTATION_KEY": "your-instrumentation-key"
-  },
-  "Host": {
-    "CORS": {
-      "AllowedOrigins": [
-        "http://localhost:3000",
-        "http://localhost:7071"
-      ]
-    }
   }
 }
