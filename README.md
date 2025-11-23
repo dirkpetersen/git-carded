@@ -9,8 +9,47 @@ A serverless application that bridges enterprise Azure Active Directory authenti
 - **Azure CLI**: `az login` (already authenticated in development environment)
 - **GitHub CLI**: `gh auth login` (already authenticated)
 - **Node.js**: 20.x LTS (⚠️ NOT 18 or 24)
-- **Azure Functions Core Tools**: 4.x
+- **Azure Functions Core Tools**: 4.x (installation instructions below)
 - **npm**: 9.x or higher
+
+### Installing Azure Functions Core Tools
+
+Azure Functions Core Tools is required to run `func start` for local development.
+
+**Ubuntu/Debian:**
+```bash
+# 1. Add Microsoft package repository GPG key
+curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+
+# 2. Add APT source (Ubuntu)
+sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs 2>/dev/null)-prod $(lsb_release -cs 2>/dev/null) main" > /etc/apt/sources.list.d/dotnetdev.list'
+
+# OR for Debian:
+sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/debian/$(lsb_release -rs 2>/dev/null | cut -d'.' -f 1)/prod $(lsb_release -cs 2>/dev/null) main" > /etc/apt/sources.list.d/dotnetdev.list'
+
+# 3. Update and install
+sudo apt-get update
+sudo apt-get install azure-functions-core-tools-4
+
+# 4. Verify installation
+func --version
+```
+
+**macOS:**
+```bash
+brew tap azure/functions
+brew install azure-functions-core-tools@4
+```
+
+**Windows:**
+Download installer from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
+
+**Supported Linux Versions:**
+- Ubuntu: 24.04 (noble), 22.04 (jammy), 20.04 (focal), 18.04 (bionic)
+- Debian: 12 (bookworm), 11 (bullseye), 10 (buster)
+
+---
 
 ### Local Development (5 minutes)
 
