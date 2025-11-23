@@ -36,7 +36,7 @@ The system acts as an "Identity Bridge" rather than a network proxy, providing a
 
 - **Compute**: Azure Functions (event-driven, pay-per-use)
 - **Database**: Azure Table Storage (NoSQL key-value store)
-  - Schema: `PartitionKey: oregonstate-ai | RowKey: CorpEmail | Columns: GitHubUsername, LastLoginTimestamp, IsActive`
+  - Schema: `PartitionKey: YourOrganization | RowKey: CorpEmail | Columns: GitHubUsername, LastLoginTimestamp, IsActive`
 - **Authentication**: Microsoft Entra ID (Azure AD) for corporate SSO
 - **Orchestration**: Timer triggers (15-minute intervals for audit enforcement)
 - **Security**: Managed Identity for secure Azure service-to-service authentication
@@ -109,7 +109,7 @@ The system acts as an "Identity Bridge" rather than a network proxy, providing a
 
 **Creating the GitHub App** (for bot operations):
 
-1. Navigate to: `https://github.com/organizations/oregonstate-ai/settings/apps` (or Settings → Developer settings → GitHub Apps → New GitHub App)
+1. Navigate to: `https://github.com/organizations/YourOrganization/settings/apps` (or Settings → Developer settings → GitHub Apps → New GitHub App)
 
 2. **App name**: `github-identity-bridge`
 
@@ -142,9 +142,9 @@ The system acts as an "Identity Bridge" rather than a network proxy, providing a
    - Installation ID (visible in "Installations" tab after installing)
    - Private Key (from the downloaded .pem file)
 
-13. **Install the app** on `oregonstate-ai` organization:
+13. **Install the app** on `YourOrganization` organization:
     - Click "Install App" in left menu
-    - Select "oregonstate-ai"
+    - Select "YourOrganization"
     - Review permissions
     - Click "Install"
     - Note the Installation ID from the URL
@@ -268,7 +268,7 @@ Instead of using a Personal Access Token, we use a GitHub App for better securit
 4. Subscribe to webhook events:
    - `member` (when user added/removed from org)
 5. Create private key and download `.pem` file
-6. Install app on `oregonstate-ai` organization
+6. Install app on `YourOrganization` organization
 
 **Store credentials as environment variables**:
 - `GITHUB_APP_ID`: The App ID number
@@ -291,7 +291,7 @@ GITHUB_OAUTH_CLIENT_ID       - GitHub OAuth app client ID
 GITHUB_OAUTH_CLIENT_SECRET   - GitHub OAuth app secret
 
 # GitHub App (Bot Operations)
-GITHUB_ORG_NAME              - Target GitHub organization (oregonstate-ai)
+GITHUB_ORG_NAME              - Target GitHub organization (YourOrganization)
 GITHUB_APP_ID                - GitHub App ID
 GITHUB_APP_PRIVATE_KEY       - GitHub App private key (PEM format)
 GITHUB_APP_INSTALLATION_ID   - GitHub App installation ID for the org
@@ -388,7 +388,7 @@ GET https://graph.microsoft.com/v1.0/users/{email}
 ## Programming Language & Stack
 
 **Implementation Stack**:
-- **Node.js 18** (Azure Functions runtime)
+- **Node.js 20 LTS** (Azure Functions runtime)
 - **Express.js** (for HTTP triggers and session management)
 - **Next.js** (optional: for future web portal UI dashboard, not part of initial Functions)
 
@@ -461,7 +461,7 @@ az deployment group create \
   --resource-group github-identity-bridge-rg \
   --template-file main.bicep \
   --parameters region=westus2 \
-                org=oregonstate-ai
+                org=YourOrganization
 
 # Deploy application code to Function App
 func azure functionapp publish github-identity-bridge-app
@@ -477,7 +477,7 @@ az functionapp config appsettings set \
 
 ```bash
 # Create the Active-Session-Users team using GitHub CLI
-gh api /orgs/oregonstate-ai/teams \
+gh api /orgs/YourOrganization/teams \
   -f name='Active-Session-Users' \
   -f description='Gatekeeper team for ID Bridge access' \
   -f privacy='closed'
@@ -487,7 +487,7 @@ gh api /orgs/oregonstate-ai/teams \
 
 # Grant Active-Session-Users team access to repositories (MANUAL or automated)
 # For each private repo:
-gh api /repos/oregonstate-ai/{repo}/teams \
+gh api /repos/YourOrganization/{repo}/teams \
   -f team_slug='active-session-users' \
   -f permission='push'
 
@@ -508,3 +508,578 @@ gh api /repos/oregonstate-ai/{repo}/teams \
 - Native developer experience (full speed, no broken features)
 - Works with all git protocols (HTTPS, SSH, IDE integrations)
 - Simpler architecture, easier to audit
+
+---
+
+## ✅ PROVEN DEPLOYMENT STRATEGY (Battle-Tested)
+
+This section documents the **winning deployment strategy** that successfully deployed the GitHub Identity Bridge to Azure Functions after extensive troubleshooting. Follow this exact approach to avoid common pitfalls.
+
+### 🎯 The Winning Configuration
+
+**Platform Requirements:**
+- **OS**: Linux (NOT Windows)
+- **Runtime**: Node.js 20 LTS (NOT 18, NOT 24)
+- **Functions Version**: 4
+- **Deployment Method**: `func azure functionapp publish` (Azure Functions Core Tools)
+- **Build Strategy**: Remote build on Azure (NOT local `node_modules`)
+
+### 🚀 Step-by-Step Deployment (Proven to Work)
+
+#### 1. Create Azure Infrastructure
+
+```bash
+# Variables
+RESOURCE_GROUP="github-identity-bridge-rg"
+LOCATION="westus2"
+STORAGE_ACCOUNT="ghidbridgeelvtn5wpwujr2"  # Must be globally unique, max 24 chars
+FUNCTION_APP="github-identity-bridge-app"
+
+# Create Resource Group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create Storage Account
+az storage account create \
+  --name $STORAGE_ACCOUNT \
+  --location $LOCATION \
+  --resource-group $RESOURCE_GROUP \
+  --sku Standard_LRS
+
+# Create Function App (Linux with Node 20)
+az functionapp create \
+  --resource-group $RESOURCE_GROUP \
+  --consumption-plan-location $LOCATION \
+  --runtime node \
+  --runtime-version 20 \
+  --functions-version 4 \
+  --name $FUNCTION_APP \
+  --storage-account $STORAGE_ACCOUNT \
+  --os-type Linux
+```
+
+#### 2. Configure Application Settings
+
+```bash
+az functionapp config appsettings set \
+  --name $FUNCTION_APP \
+  --resource-group $RESOURCE_GROUP \
+  --settings \
+    "USE_MOCK_OAUTH=true" \
+    "GITHUB_ORG_NAME=YourOrganization" \
+    "GITHUB_GATEKEEPER_TEAM_SLUG=active-session-users" \
+    "NODE_ENV=production" \
+    "REDIRECT_URI=https://${FUNCTION_APP}.azurewebsites.net/api/AuthCallback" \
+    "WEBSITE_RUN_FROM_PACKAGE=1"
+```
+
+#### 3. Fix Critical Code Issues BEFORE Deployment
+
+**CRITICAL FIX #1: Remove "main" from package.json**
+```json
+{
+  "name": "github-identity-bridge",
+  "version": "1.0.0",
+  "description": "...",
+  // ❌ DELETE THIS LINE: "main": "index.js",
+  "scripts": {
+    "start:func": "func start"
+  },
+  "engines": {
+    "node": ">=20.0.0"  // ✅ Must match Azure runtime version
+  }
+}
+```
+
+**CRITICAL FIX #2: Use "res" (not "$return") in function.json**
+```json
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get", "post"]
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"  // ✅ MUST be "res" if using context.res
+      // ❌ NOT "$return" unless you use "return" statement
+    }
+  ]
+}
+```
+
+**CRITICAL FIX #3: Correct Folder Structure**
+```
+/
+├── host.json                 # ✅ At root
+├── package.json              # ✅ At root (no "main" property!)
+├── shared/                   # ✅ Shared utilities
+│   ├── logger.js
+│   ├── database.js
+│   └── ...
+├── Login/                    # ✅ Each function at root level
+│   ├── function.json
+│   └── index.js
+├── HealthCheck/              # ✅ Not in a "functions/" subfolder
+│   ├── function.json
+│   └── index.js
+└── ...
+```
+
+#### 4. Deploy to Azure
+
+```bash
+# From project root directory
+func azure functionapp publish github-identity-bridge-app
+```
+
+**What this does:**
+- ✅ Uploads code (without node_modules)
+- ✅ Azure runs `npm install` on the Linux server
+- ✅ Ensures binary compatibility
+- ✅ Registers all functions with triggers
+- ✅ Syncs function metadata
+
+#### 5. Verify Deployment
+
+```bash
+# Test endpoints
+curl https://github-identity-bridge-app.azurewebsites.net/api/healthcheck
+curl https://github-identity-bridge-app.azurewebsites.net/api/sanitycheck
+curl https://github-identity-bridge-app.azurewebsites.net/api/login
+```
+
+Expected responses:
+- HealthCheck: HTTP 200 with JSON status
+- SanityCheck: HTTP 200 with success message
+- Login: HTTP 200 with mock redirect URL (in mock mode)
+
+---
+
+## ⚠️ CRITICAL ERRORS TO AVOID
+
+### 🔴 Error #1: Using Unsupported Node.js Versions
+
+**Problem:**
+```bash
+# ❌ WRONG - Node 24 is NOT supported by Azure Functions
+az functionapp create --runtime-version 24 ...
+
+# ❌ WRONG - Node 18 reached end-of-life
+az functionapp create --runtime-version 18 ...
+```
+
+**Symptoms:**
+- Functions register but fail with HTTP 500
+- "Syncing triggers (BadRequest)" errors
+- Runtime fails to start worker process
+
+**Solution:**
+```bash
+# ✅ CORRECT - Use Node 20 LTS
+az functionapp create --runtime-version 20 ...
+
+# ✅ Verify with:
+az functionapp show --name <app> --resource-group <rg> \
+  --query "siteConfig.linuxFxVersion"
+# Should return: "Node|20"
+```
+
+**Package.json must match:**
+```json
+"engines": {
+  "node": ">=20.0.0"  // ✅ Matches Azure runtime
+}
+```
+
+---
+
+### 🔴 Error #2: The "main" Property Death Trap
+
+**Problem:**
+```json
+{
+  "name": "my-function-app",
+  "main": "index.js",  // ❌ DEADLY - Azure tries to run this file
+  "scripts": { ... }
+}
+```
+
+**What happens:**
+- Azure Functions tries to start the app by running `node index.js` from root
+- But functions are in subfolders (e.g., `Login/index.js`)
+- Root `index.js` doesn't exist → Runtime crashes
+- All endpoints return HTTP 500 or 204
+- Log streaming returns 404 (runtime is dead)
+
+**Symptoms:**
+- Functions list correctly (control plane OK)
+- All endpoints return HTTP 500 or 204
+- Even zero-dependency functions fail
+- `az webapp log tail` returns 404 (management plane dead)
+
+**Solution:**
+```json
+{
+  "name": "my-function-app",
+  // ✅ DELETE the "main" property entirely
+  "scripts": {
+    "start:func": "func start"  // ✅ For local development
+  }
+}
+```
+
+---
+
+### 🔴 Error #3: Wrong Output Binding Name
+
+**Problem:**
+```json
+{
+  "bindings": [
+    { "type": "httpTrigger", "name": "req" },
+    { "type": "http", "name": "$return" }  // ❌ WRONG if using context.res
+  ]
+}
+```
+
+```javascript
+// Code uses context.res
+module.exports = async function (context, req) {
+  context.res = { status: 200, body: "Hello" };  // ❌ Doesn't match binding
+};
+```
+
+**Symptoms:**
+- Function executes without errors
+- Returns HTTP 204 (No Content) instead of your response
+- Appears to work but produces empty responses
+
+**Solution - Option A (Recommended):**
+```json
+{
+  "bindings": [
+    { "type": "http", "name": "res" }  // ✅ Matches context.res
+  ]
+}
+```
+```javascript
+context.res = { status: 200, body: "Hello" };  // ✅ Works
+```
+
+**Solution - Option B:**
+```json
+{
+  "bindings": [
+    { "type": "http", "name": "$return" }  // ✅ If using return
+  ]
+}
+```
+```javascript
+return { status: 200, body: "Hello" };  // ✅ Must use return, not context.res
+```
+
+---
+
+### 🔴 Error #4: Including node_modules in Deployment
+
+**Problem:**
+```bash
+# ❌ WRONG - Uploading local node_modules from Windows/Mac to Linux Azure
+zip -r deploy.zip . # Includes node_modules with wrong binaries
+az functionapp deployment source config-zip --src deploy.zip
+```
+
+**Symptoms:**
+- Massive upload size (20+ MB)
+- Binary incompatibility errors
+- Native modules fail to load
+- Slow deployment times
+
+**Solution:**
+```bash
+# ✅ CORRECT - Exclude node_modules, let Azure build remotely
+zip -r deploy.zip . -x "node_modules/*" -x ".git/*"
+
+# Or use func CLI (handles this automatically):
+func azure functionapp publish github-identity-bridge-app
+```
+
+**Why this works:**
+- Azure detects `package.json`
+- Runs `npm install` on the Linux server
+- Ensures all binaries match the Linux environment
+- Fast upload (only ~150KB source code)
+
+---
+
+### 🔴 Error #5: Corrupted Storage Containers
+
+**Problem:**
+After multiple failed deployments, the Function App won't start even with correct code.
+
+**Symptoms:**
+- 503 Service Unavailable
+- "Sync triggers" fails repeatedly
+- Log streaming returns 404
+- Fresh deployments don't help
+
+**Solution - Clean Slate Approach:**
+```bash
+# 1. Delete Function App
+az functionapp delete --name <app> --resource-group <rg>
+
+# 2. ⚠️ CRITICAL: Clean corrupted storage
+az storage container delete --name azure-webjobs-hosts --account-name <storage>
+az storage container delete --name azure-webjobs-secrets --account-name <storage>
+az storage share delete --name <app-name> --account-name <storage>
+
+# 3. Recreate Function App
+az functionapp create \
+  --resource-group <rg> \
+  --runtime node \
+  --runtime-version 20 \
+  --os-type Linux \
+  --name <app> \
+  --storage-account <storage>
+
+# 4. Redeploy
+func azure functionapp publish <app>
+```
+
+---
+
+### 🔴 Error #6: Wrong Folder Structure
+
+**Problem:**
+```
+/
+├── functions/              # ❌ WRONG - Extra nesting level
+│   ├── Login/
+│   │   ├── function.json
+│   │   └── index.js
+│   └── HealthCheck/
+│       ├── function.json
+│       └── index.js
+```
+
+**Symptoms:**
+- Functions not discovered
+- "Functions detected: 0" in deployment logs
+- HTTP 404 on all endpoints
+
+**Solution:**
+```
+/
+├── Login/                  # ✅ CORRECT - Functions at root
+│   ├── function.json
+│   └── index.js
+├── HealthCheck/            # ✅ Direct child of root
+│   ├── function.json
+│   └── index.js
+└── shared/                 # ✅ Shared code at root level
+    ├── logger.js
+    └── database.js
+```
+
+**Fix if you have nested structure:**
+```bash
+# Move functions to root
+mv functions/* .
+rmdir functions
+
+# Update require paths in all index.js files
+find . -name "index.js" -path "*/*/index.js" \
+  -exec sed -i "s|require('../../shared/|require('../shared/|g" {} \;
+```
+
+---
+
+### 🔴 Error #7: Extension Bundle Version Mismatch
+
+**Problem:**
+```json
+{
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[3.*, 4.0.0)"  // ❌ WRONG - v3 is deprecated
+  }
+}
+```
+
+**Symptoms:**
+- Functions fail to bind triggers
+- HTTP and Timer triggers not recognized
+- Deployment succeeds but functions don't appear
+
+**Solution:**
+```json
+{
+  "version": "2.0",
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[4.*, 5.0.0)"  // ✅ CORRECT - v4 for Functions runtime v4
+  }
+}
+```
+
+---
+
+## 🎓 Deployment Lessons Learned
+
+### The Diagnostic Process
+
+When functions return HTTP 500:
+
+1. **Test Infrastructure First:**
+   - Create a zero-dependency function (SanityCheck)
+   - If SanityCheck fails → Infrastructure issue
+   - If SanityCheck works → Code dependency issue
+
+2. **Check Configuration:**
+   - Remove `"main"` from package.json
+   - Verify output binding names match code
+   - Ensure Node version matches between Azure and package.json
+
+3. **Enable Logging:**
+   ```bash
+   az webapp log config \
+     --name <app> \
+     --resource-group <rg> \
+     --application-logging filesystem \
+     --level verbose
+   ```
+
+4. **Stream Live Logs:**
+   ```bash
+   az webapp log tail --name <app> --resource-group <rg>
+   ```
+   Note: Only works if runtime is healthy. 404 means runtime is dead.
+
+### The "Clean Slate" Recovery
+
+If the Function App is completely broken (log streaming 404, persistent 500s):
+
+```bash
+# 1. Delete everything
+az functionapp delete --name <app> --resource-group <rg>
+az storage container delete --name azure-webjobs-hosts --account-name <storage>
+az storage container delete --name azure-webjobs-secrets --account-name <storage>
+
+# 2. Recreate fresh
+az functionapp create ... (with correct --runtime-version 20)
+
+# 3. Fix code issues (remove "main", fix bindings)
+
+# 4. Deploy
+func azure functionapp publish <app>
+```
+
+### Testing Checklist
+
+After deployment, verify:
+
+- ✅ `curl https://<app>.azurewebsites.net/api/sanitycheck` → HTTP 200
+- ✅ `curl https://<app>.azurewebsites.net/api/healthcheck` → HTTP 200 with JSON
+- ✅ `curl https://<app>.azurewebsites.net/api/login` → HTTP 200 or 302 redirect
+- ✅ `az functionapp function list --name <app>` → Lists all functions
+- ✅ `az webapp log tail --name <app>` → Streams logs (not 404)
+
+---
+
+## 🐛 Common Error Messages Decoded
+
+| Error Message | Root Cause | Solution |
+|--------------|------------|----------|
+| **"Syncing triggers (BadRequest)"** | Node version not supported (e.g., Node 24) | Use Node 20 LTS |
+| **HTTP 204 on all endpoints** | Output binding name mismatch (`$return` vs `res`) | Change `"name": "$return"` to `"name": "res"` |
+| **"Failed to connect to logstream (404)"** | Runtime process dead, usually from `"main": "index.js"` | Remove `"main"` from package.json |
+| **"Functions detected: 0"** | Functions in wrong folder (e.g., `functions/Login/` instead of `Login/`) | Move functions to root level |
+| **HTTP 500 even on simple functions** | Package.json has `"main"` pointing to non-existent file | Delete `"main"` property |
+| **"Worker process failed to start"** | Node version mismatch or missing dependencies | Match package.json engines to Azure runtime |
+
+---
+
+## 📦 Deployment Artifacts
+
+**Files required at root level:**
+- ✅ `host.json` - Azure Functions host configuration
+- ✅ `package.json` - Dependencies (NO "main" property!)
+- ✅ `*.md` files - Documentation (excluded from deployment zip)
+- ✅ Function folders (`Login/`, `Audit/`, etc.) - Each with function.json + index.js
+- ✅ `shared/` - Shared utility modules
+
+**Files to exclude from deployment:**
+- ❌ `node_modules/` - Built remotely by Azure
+- ❌ `.git/` - Version control
+- ❌ `.env` - Local secrets
+- ❌ `*.zip` - Previous deployment archives
+- ❌ `scripts/` - Local tooling
+
+---
+
+## 🔍 Troubleshooting Guide
+
+### Issue: "Module not found" errors
+
+**Check:**
+1. All `require()` paths use correct relative paths
+2. After moving functions to root: `require('../../shared/X')` → `require('../shared/X')`
+3. Dependencies listed in package.json
+
+### Issue: HTTP 500 on specific endpoints
+
+**Check:**
+1. Environment variables set in Azure
+2. Required credentials configured (or USE_MOCK_OAUTH=true)
+3. Function code handles missing env vars gracefully
+
+### Issue: Timer trigger (Audit) not running
+
+**Check:**
+1. `function.json` has correct cron expression: `"schedule": "0 */15 * * * *"`
+2. Function App has proper storage permissions
+3. Check Application Insights for execution logs
+
+---
+
+## 🎯 Production Deployment Checklist
+
+Before going live:
+
+- [ ] Set `USE_MOCK_OAUTH=false`
+- [ ] Configure all real OAuth credentials (Azure AD, GitHub OAuth, GitHub App)
+- [ ] Create "Active-Session-Users" team in GitHub org
+- [ ] Set org base permissions to "None"
+- [ ] Enable org-wide 2FA requirement
+- [ ] Test full OAuth flow: Login → Azure AD → GitHub → Callback
+- [ ] Verify database writes to Azure Table Storage
+- [ ] Verify Audit function runs on schedule
+- [ ] Test Soft Lock (team removal after 24h)
+- [ ] Test Hard Kick (org removal for disabled AD accounts)
+- [ ] Configure Application Insights alerts
+- [ ] Document credential rotation procedures
+
+---
+
+## 📊 Deployment Status: SUCCESSFUL ✅
+
+**Deployed Environment:**
+- **Function App**: github-identity-bridge-app.azurewebsites.net
+- **Resource Group**: github-identity-bridge-rg
+- **Storage**: ghidbridgeelvtn5wpwujr2
+- **Runtime**: Linux, Node 20, Functions v4
+- **Status**: All 7 endpoints operational
+- **Mode**: Mock OAuth (USE_MOCK_OAUTH=true)
+
+**Live Endpoints:**
+- https://github-identity-bridge-app.azurewebsites.net/api/healthcheck
+- https://github-identity-bridge-app.azurewebsites.net/api/sanitycheck
+- https://github-identity-bridge-app.azurewebsites.net/api/login
+- https://github-identity-bridge-app.azurewebsites.net/api/authcallback
+- https://github-identity-bridge-app.azurewebsites.net/api/githubwebhook
+- https://github-identity-bridge-app.azurewebsites.net/api/diagnostic
+- Timer: Audit (runs every 15 minutes)

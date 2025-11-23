@@ -1,8 +1,8 @@
-const logger = require('../../shared/logger');
-const database = require('../../shared/database');
-const github = require('../../shared/github');
-const azureAd = require('../../shared/azure-ad');
-const mockOAuth = require('../../shared/mock-oauth');
+const logger = require('../shared/logger');
+const database = require('../shared/database');
+const github = require('../shared/github');
+const azureAd = require('../shared/azure-ad');
+const mockOAuth = require('../shared/mock-oauth');
 
 const MAX_LEASE_HOURS = 24; // Expire after 24 hours
 const GATEKEEPER_TEAM_SLUG = process.env.GITHUB_GATEKEEPER_TEAM_SLUG || 'active-session-users';

@@ -44,7 +44,7 @@ function getTableClient() {
 async function upsertUserMapping(corporateEmail, githubUsername) {
   try {
     const entity = {
-      partitionKey: process.env.GITHUB_ORG_NAME || 'oregonstate-ai',
+      partitionKey: process.env.GITHUB_ORG_NAME || 'your-org',
       rowKey: corporateEmail,
       GitHubUsername: githubUsername,
       LastLoginTimestamp: new Date().toISOString(),
@@ -70,7 +70,7 @@ async function getUserMapping(corporateEmail) {
   try {
     const client = getTableClient();
     const entity = await client.getEntity(
-      process.env.GITHUB_ORG_NAME || 'oregonstate-ai',
+      process.env.GITHUB_ORG_NAME || 'your-org',
       corporateEmail
     );
     return entity;
@@ -113,7 +113,7 @@ async function updateLastLogin(corporateEmail) {
 async function getAllUserMappings() {
   try {
     const client = getTableClient();
-    const partitionKey = process.env.GITHUB_ORG_NAME || 'oregonstate-ai';
+    const partitionKey = process.env.GITHUB_ORG_NAME || 'your-org';
 
     const entities = [];
     for await (const entity of client.listEntities({
@@ -136,7 +136,7 @@ async function deleteUserMapping(corporateEmail) {
   try {
     const client = getTableClient();
     await client.deleteEntity(
-      process.env.GITHUB_ORG_NAME || 'oregonstate-ai',
+      process.env.GITHUB_ORG_NAME || 'your-org',
       corporateEmail
     );
 
@@ -159,7 +159,7 @@ async function logAuditEvent(event, details) {
     const auditTableClient = TableClient.fromConnectionString(connectionString, 'AuditLogs');
 
     const auditEntity = {
-      partitionKey: process.env.GITHUB_ORG_NAME || 'oregonstate-ai',
+      partitionKey: process.env.GITHUB_ORG_NAME || 'your-org',
       rowKey: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       Event: event,
       Details: JSON.stringify(details),

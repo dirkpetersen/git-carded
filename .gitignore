@@ -27,6 +27,10 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+local.settings.json
+
+# deployment artifacts
+*.zip
 
 # vercel
 .vercel
@@ -34,3 +38,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+*.swp

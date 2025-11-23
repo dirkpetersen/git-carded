@@ -8,7 +8,7 @@ A serverless application that bridges enterprise Azure Active Directory authenti
 
 - **Azure CLI**: `az login` (already authenticated in development environment)
 - **GitHub CLI**: `gh auth login` (already authenticated)
-- **Node.js**: 18.x or higher
+- **Node.js**: 20.x LTS (⚠️ NOT 18 or 24)
 - **Azure Functions Core Tools**: 4.x
 - **npm**: 9.x or higher
 
@@ -19,23 +19,26 @@ A serverless application that bridges enterprise Azure Active Directory authenti
 git clone <repo-url>
 cd git-carded
 
-# 2. Copy environment template
-cp local.settings.json.example local.settings.json
+# 2. Set up configuration
+cp .env.default .env
+# Edit .env if needed (USE_MOCK_OAUTH=true is already set for testing)
 
-# 3. Edit local.settings.json with your credentials (or use mock OAuth for testing)
-# For testing, set: "USE_MOCK_OAUTH": "true"
+# 3. Generate Azure Functions config
+./scripts/generate-local-settings.sh
 
 # 4. Install dependencies
 npm install
 
 # 5. Start local Azure Functions
-npm start
+func start
 # Functions will run at: http://localhost:7071
 
 # 6. Test the portal
-# Visit: http://localhost:7071/api/Login (will use mock OAuth if configured)
-# Visit: http://localhost:7071/api/HealthCheck (verify connectivity)
+# Visit: http://localhost:7071/api/login (will use mock OAuth)
+# Visit: http://localhost:7071/api/healthcheck (verify connectivity)
 ```
+
+**📖 For detailed script documentation, see [scripts/README.md](scripts/README.md)**
 
 ### Deployment to Azure (10 minutes)
 
@@ -76,30 +79,45 @@ az functionapp config appsettings set \
 
 ```
 git-carded/
-├── functions/
+├── 📄 Configuration
+│   ├── host.json              # Azure Functions host config
+│   ├── package.json           # Node.js dependencies (no "main" property!)
+│   ├── .env.default           # Environment template with instructions
+│   └── main.bicep             # Azure infrastructure (IaC)
+│
+├── 🔧 Function Endpoints (at root level)
 │   ├── Login/                 # Initiates Azure AD OAuth
 │   ├── AuthCallback/          # Handles OAuth callbacks
 │   ├── Audit/                 # 15-min timer trigger (enforces leases)
 │   ├── GithubWebhook/         # Receives GitHub events
-│   └── HealthCheck/           # System health check
-├── shared/
-│   ├── database.js            # Azure Table Storage client
-│   ├── github.js              # GitHub API wrapper
-│   ├── azure-ad.js            # Azure AD OAuth
-│   ├── logger.js              # Application Insights logging
-│   └── mock-oauth.js          # Mock OAuth for testing
-├── tests/                     # Jest test suite
-├── scripts/
-│   ├── deploy.sh              # Deploy to Azure
-│   └── cleanup.sh             # Remove all resources
-├── docs/
-│   ├── TESTING.md             # Manual testing guide
-│   └── MOCK-OAUTH.md          # Mock OAuth configuration
-├── postman/                   # Postman collection
-├── main.bicep                 # Azure infrastructure (Bicep IaC)
-├── host.json                  # Azure Functions configuration
-├── package.json               # Node.js dependencies
-└── CLAUDE.md                  # Architecture & detailed docs
+│   ├── HealthCheck/           # System health check
+│   ├── SanityCheck/           # Infrastructure test
+│   └── Diagnostic/            # Environment check
+│
+├── 📦 Shared Utilities
+│   └── shared/
+│       ├── database.js        # Azure Table Storage client
+│       ├── github.js          # GitHub API wrapper
+│       ├── azure-ad.js        # Azure AD OAuth
+│       ├── logger.js          # Application Insights logging
+│       └── mock-oauth.js      # Mock OAuth for testing
+│
+├── 🛠️ Scripts
+│   ├── scripts/
+│   │   ├── deploy.sh          # Deploy to Azure
+│   │   ├── cleanup.sh         # Remove all resources
+│   │   ├── generate-local-settings.sh  # Convert .env to local.settings.json
+│   │   └── README.md          # 📖 Scripts documentation
+│
+├── 📚 Documentation
+│   ├── CLAUDE.md              # Complete architecture & deployment guide
+│   ├── docs/
+│   │   ├── API.md             # API endpoint documentation
+│   │   └── TESTING.md         # Manual testing guide
+│
+└── 🧪 Development
+    ├── local-server.js        # Simple dev server (no func CLI needed)
+    └── local.settings.json    # Auto-generated (see scripts/README.md)
 ```
 
 ## Architecture Overview
@@ -169,14 +187,14 @@ See [postman/](postman/) for API collection with mock OAuth pre-configured.
 
 ### Environment Variables
 
-All configuration is managed via environment variables. See `.env.example` for template.
+All configuration is managed via environment variables. See `.env.default` for complete template with instructions.
 
 **Critical Variables**:
 - `AZURE_TENANT_ID` - Azure AD tenant ID
 - `AZURE_CLIENT_ID` - App registration client ID
 - `GITHUB_APP_ID` - GitHub App ID
 - `GITHUB_APP_PRIVATE_KEY` - GitHub App private key (PEM format)
-- `GITHUB_ORG_NAME` - Target organization (oregonstate-ai)
+- `GITHUB_ORG_NAME` - Target organization (YourOrganization)
 
 See [CLAUDE.md](CLAUDE.md) for complete environment variable documentation.
 
@@ -264,10 +282,10 @@ See [docs/TESTING.md](docs/TESTING.md) for more debugging tips.
 
 ## Documentation
 
-- **[CLAUDE.md](CLAUDE.md)** - Complete architecture, security model, and implementation details
+- **[CLAUDE.md](CLAUDE.md)** - Complete architecture, deployment strategy, and troubleshooting guide
+- **[scripts/README.md](scripts/README.md)** - Configuration scripts and workflow
 - **[docs/API.md](docs/API.md)** - API endpoint documentation
 - **[docs/TESTING.md](docs/TESTING.md)** - Manual testing guide and troubleshooting
-- **[docs/MOCK-OAUTH.md](docs/MOCK-OAUTH.md)** - Mock OAuth configuration and usage
 
 ## Security
 

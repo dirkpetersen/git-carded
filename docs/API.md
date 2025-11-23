@@ -71,7 +71,7 @@ GET /api/HealthCheck
   "environment": {
     "NODE_ENV": "development",
     "USE_MOCK_OAUTH": true,
-    "GITHUB_ORG_NAME": "oregonstate-ai"
+    "GITHUB_ORG_NAME": "YourOrganization"
   },
   "credentials": {
     "azureAdConfigured": true,
@@ -147,7 +147,7 @@ curl -X POST http://localhost:7071/api/GithubWebhook \
 
 ```json
 {
-  "partitionKey": "oregonstate-ai",
+  "partitionKey": "YourOrganization",
   "rowKey": "user@example.com",
   "GitHubUsername": "testuser",
   "LastLoginTimestamp": "2024-01-15T10:30:00Z",
@@ -164,7 +164,7 @@ curl -X POST http://localhost:7071/api/GithubWebhook \
 
 ```json
 {
-  "partitionKey": "oregonstate-ai",
+  "partitionKey": "YourOrganization",
   "rowKey": "1705315800000-abc123def",
   "Event": "USER_AUTHENTICATED",
   "Details": "{\"email\":\"user@example.com\",\"githubUsername\":\"testuser\"}",
@@ -281,5 +281,5 @@ Query audit logs:
 az storage entity query \
   --account-name <storage> \
   --table-name AuditLogs \
-  --filter "partitionKey eq 'oregonstate-ai'"
+  --filter "partitionKey eq 'YourOrganization'"
 ```

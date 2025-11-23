@@ -129,10 +129,10 @@ az storage entity query \
 **Verify**:
 ```bash
 # Check user was added to org
-gh api "/orgs/oregonstate-ai/members/{username}"
+gh api "/orgs/YourOrganization/members/{username}"
 
 # Check user is in team
-gh api "/orgs/oregonstate-ai/teams/active-session-users/memberships/{username}"
+gh api "/orgs/YourOrganization/teams/active-session-users/memberships/{username}"
 
 # Check database mapping
 az storage entity query \
@@ -158,7 +158,7 @@ az storage entity query \
 az storage entity update \
   --account-name <storage> \
   --table-name UserMappings \
-  --partition-key oregonstate-ai \
+  --partition-key YourOrganization \
   --row-key "user@example.com" \
   --entity 'Timestamp=2020-01-01T00:00:00Z'
 
@@ -166,7 +166,7 @@ az storage entity update \
 # Manually trigger: POST /api/Audit
 
 # Check user removed from team
-gh api "/orgs/oregonstate-ai/teams/active-session-users/memberships/{username}" || echo "User not in team"
+gh api "/orgs/YourOrganization/teams/active-session-users/memberships/{username}" || echo "User not in team"
 ```
 
 ### Scenario 3: Terminated Employee
@@ -188,7 +188,7 @@ gh api "/orgs/oregonstate-ai/teams/active-session-users/memberships/{username}" 
 # Manually trigger audit to see effect
 
 # Check user removed from org
-gh api "/orgs/oregonstate-ai/members/{username}" || echo "User not in org"
+gh api "/orgs/YourOrganization/members/{username}" || echo "User not in org"
 
 # Check database record deleted
 az storage entity query \

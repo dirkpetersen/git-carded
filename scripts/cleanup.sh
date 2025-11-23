@@ -8,7 +8,7 @@
 set -e
 
 RESOURCE_GROUP="github-identity-bridge-rg"
-ORG_NAME="oregonstate-ai"
+ORG_NAME="YourOrganization"
 TEAM_NAME="Active-Session-Users"
 
 # Colors

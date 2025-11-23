@@ -1,6 +1,6 @@
-const logger = require('../../shared/logger');
-const github = require('../../shared/github');
-const database = require('../../shared/database');
+const logger = require('../shared/logger');
+const github = require('../shared/github');
+const database = require('../shared/database');
 
 /**
  * GitHub Webhook function - Receives GitHub events and logs them

@@ -2,7 +2,6 @@
   "name": "github-identity-bridge",
   "version": "1.0.0",
   "description": "GitHub Identity Bridge & Governance System - Azure Functions implementation",
-  "main": "index.js",
   "scripts": {
     "start": "node local-server.js",
     "start:func": "func start",
@@ -44,6 +43,6 @@
     "supertest": "^6.3.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=20.0.0"
   }
 }

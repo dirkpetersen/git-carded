@@ -1,8 +1,8 @@
-const logger = require('../../shared/logger');
-const azureAd = require('../../shared/azure-ad');
-const github = require('../../shared/github');
-const database = require('../../shared/database');
-const mockOAuth = require('../../shared/mock-oauth');
+const logger = require('../shared/logger');
+const azureAd = require('../shared/azure-ad');
+const github = require('../shared/github');
+const database = require('../shared/database');
+const mockOAuth = require('../shared/mock-oauth');
 const querystring = require('querystring');
 
 /**
@@ -115,7 +115,7 @@ module.exports = async function (context, req) {
                   <p>Your account has been successfully linked in mock mode.</p>
                   <p><strong>Azure Email:</strong> ${userEmail}</p>
                   <p><strong>GitHub Username:</strong> ${mockGhUser.login}</p>
-                  <p><strong>Organization:</strong> ${process.env.GITHUB_ORG_NAME || 'oregonstate-ai'}</p>
+                  <p><strong>Organization:</strong> ${process.env.GITHUB_ORG_NAME || 'your-org'}</p>
                   <hr>
                   <p><em>Note: This is mock mode. No actual GitHub organization access granted.</em></p>
                   <p><em>To test with real credentials, set USE_MOCK_OAUTH=false in local.settings.json</em></p>
@@ -213,7 +213,7 @@ module.exports = async function (context, req) {
               <p>Your account has been successfully linked.</p>
               <p><strong>Azure Email:</strong> ${userEmail}</p>
               <p><strong>GitHub Username:</strong> ${ghUser.login}</p>
-              <p>You have been added to the ${process.env.GITHUB_ORG_NAME || 'oregonstate-ai'} organization.</p>
+              <p>You have been added to the ${process.env.GITHUB_ORG_NAME || 'your-org'} organization.</p>
               <p><a href="https://github.com/oregonstate-ai">Go to GitHub Organization</a></p>
             </body>
           </html>

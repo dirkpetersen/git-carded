@@ -12,7 +12,7 @@ RESOURCE_GROUP="github-identity-bridge-rg"
 LOCATION="westus2"
 STORAGE_ACCOUNT="githubidentitybridge"
 FUNCTION_APP="github-identity-bridge-app"
-ORG_NAME="oregonstate-ai"
+ORG_NAME="YourOrganization"
 TEAM_NAME="Active-Session-Users"
 BICEP_FILE="main.bicep"
 
