@@ -97,7 +97,7 @@ In mock mode (`USE_MOCK_OAUTH=true`), users with "disabled" in their email are t
 - **Entra ID App**: `github-identity-bridge` (`c3c5534d-a8bf-46a5-b914-ab413e532275`)
 - **GitHub Org**: `oregonstate-ai`
 - **Gatekeeper Team**: `active-session-users` (has access to `demo-repository`)
-- **Runtime**: Linux, Node 20, Functions v4, extension bundle v4
+- **Runtime**: Linux, Node 20 (Node 24 tested March 2026 — causes 503 on Consumption plan, not yet supported), Functions v4, extension bundle v4
 - **Mode**: `USE_MOCK_OAUTH=false` (live Entra ID + GitHub OAuth)
 
 To switch subscription before any `az` commands:
@@ -116,6 +116,7 @@ These are hard-won lessons from deployment — violating them causes silent fail
 5. **Node 20 LTS only** — Node 18 (EOL) and Node 24 (unsupported) both cause "Syncing triggers (BadRequest)".
 6. **Extension bundle v4** — `host.json` must specify `[4.*, 5.0.0)` for Functions runtime v4.
 7. **Redirect URI casing** — Entra ID validates redirect URIs case-sensitively. The registered URI and `REDIRECT_URI` env var must both use `/api/AuthCallback` (mixed case). Lowercase `/api/authcallback` will cause OAuth failures.
+8. **Node 24 not yet supported on Linux Consumption** — Despite Azure CLI warnings to upgrade, setting `linuxFxVersion=Node|24` causes persistent HTTP 503. Confirmed tested March 2026. Stay on Node 20 until Azure confirms Consumption plan support. Revert with: `az functionapp config set --linux-fx-version "Node|20"`
 
 ## Diagnosing Deployment Issues
 

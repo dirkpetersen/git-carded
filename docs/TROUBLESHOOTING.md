@@ -41,6 +41,8 @@ npx azure-functions-core-tools@4 azure functionapp publish github-identity-bridg
 
 **Fix**: Wait 10–15 seconds and retry. If it persists beyond 30 seconds, it is a genuine 404 (function not registered — see below).
 
+**After a Node runtime version change**: Functions that import shared modules (Login, AuthCallback, Audit etc.) can take 2–3 minutes to come back up after a `linuxFxVersion` change, even after `SanityCheck` returns 200. This is normal — the host re-initialises each worker lazily. Wait up to 3 minutes before concluding there is a problem.
+
 ---
 
 ### "Functions detected: 0" at deploy time
@@ -76,6 +78,26 @@ az functionapp config show \
   --query "linuxFxVersion"
 ```
 Should return `"Node|20"`.
+
+---
+
+### Node 24 causes persistent HTTP 503
+
+**Symptom**: After running `az functionapp config set --linux-fx-version "Node|24"`, the app returns 503 on all endpoints and never recovers, even after restarts and redeployment.
+
+**Cause**: As of March 2026, Node 24 is not yet supported on Azure Functions Linux Consumption plans, despite the Azure CLI actively warning to upgrade from Node 20. The warning is premature.
+
+**Fix**: Revert to Node 20 immediately:
+```bash
+az functionapp config set \
+  --name github-identity-bridge-app \
+  --resource-group github-identity-bridge-rg \
+  --linux-fx-version "Node|20"
+# Wait ~60s then verify
+curl https://github-identity-bridge-app.azurewebsites.net/api/sanitycheck
+```
+
+**When to retry Node 24**: Check the [Azure Functions supported languages](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions) page for Linux Consumption plan support before attempting again.
 
 ---
 
