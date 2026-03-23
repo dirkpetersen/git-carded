@@ -35,6 +35,18 @@ npx azure-functions-core-tools@4 azure functionapp publish github-identity-bridg
 
 ---
 
+### HTTP 404 on Login when other functions respond fine
+
+**Most likely cause**: Testing with `curl -I` or `curl --head`, which sends a HEAD request. Login's `function.json` only accepts `["get", "post"]` — HEAD is rejected with 404.
+
+**Fix**: Always test Login with an explicit GET:
+```bash
+curl -s -o /dev/null -w "%{http_code}" -X GET https://github-identity-bridge-app.azurewebsites.net/api/login
+# Expected: 302
+```
+
+---
+
 ### HTTP 404 on a function immediately after deploy
 
 **Cause**: Cold start. The Functions host is still loading the worker process.
